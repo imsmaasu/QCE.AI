@@ -6,6 +6,7 @@ import type {
   FootingInputs,
   ColumnInputs,
   BeamInputs,
+  RatesInputs,
   Corrections,
   BbsRow,
   BbsResult,
@@ -41,7 +42,7 @@ export function step(label: string, formulaText: string, substitutedText: string
 export function getRowSpanFt(
   rowId: string,
   compType: ComponentType,
-  params: FootingInputs | ColumnInputs | BeamInputs | Record<string, unknown>,
+  params: FootingInputs | ColumnInputs | BeamInputs | RatesInputs,
 ): number | null {
   if (compType === 'footing') {
     const p = params as FootingInputs;

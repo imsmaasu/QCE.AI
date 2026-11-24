@@ -47,27 +47,27 @@
 
 ---
 
-### [ ] Milestone 2.2: Drawing Fixes & Site View (CURRENT)
-- [ ] 3 styles: Textbook (1-rep bar) | Simple (all bars, B&W) | Color
-- [ ] Site View with bar tags in right margin and 1-rep geometry
-- [ ] General notes and title block as HTML below SVG
-- [ ] Per-view Labels ON/OFF toggle (keeps dimension lines)
-- [ ] Remove drawing preview from cards (sticky right panel only)
-- [ ] Fix text collisions (stagger leaders, offset dimension lines)
-- [ ] Fix U-bar highlight in drawing (F5)
-- [ ] Cover min/max limits to prevent negative geometry (F4)
+### [x] Milestone 2.2: Drawing Fixes & Site View (DONE)
+- [x] 3 styles: Textbook (1-rep bar) | Simple (all bars, B&W) | Color
+- [x] Site View with bar tags in right margin and 1-rep geometry
+- [x] General notes and title block as HTML below SVG
+- [x] Per-view Labels ON/OFF toggle (keeps dimension lines)
+- [x] Remove drawing preview from cards (sticky right panel only)
+- [x] Fix text collisions (stagger leaders, offset dimension lines)
+- [x] Fix U-bar highlight in drawing (F5)
+- [x] Cover min/max limits to prevent negative geometry (F4)
 
 ---
 
-### [ ] Milestone 3: Interactive 3D Model ("Imagine 3D")
-- [ ] Three.js / React Three Fiber canvas
-- [ ] Lazy load (only mounts when "Imagine 3D" is clicked)
-- [ ] Reuse `/src/geometry` coordinates directly
-- [ ] Orbit controls (rotate, pan, zoom) with rebar tags
+### [x] Milestone 3: Interactive 3D Model ("Imagine 3D") (DONE)
+- [x] Three.js / React Three Fiber canvas
+- [x] Lazy load (only mounts when "Imagine 3D" is clicked)
+- [x] Reuse `/src/geometry` coordinates directly
+- [x] Orbit controls (rotate, pan, zoom) with rebar tags
 
 ---
 
-### [ ] Milestone 4: More Components & Quantities
+### [ ] Milestone 4: More Components & Quantities (CURRENT)
 - [ ] Plinth beam BBS
 - [ ] One-way and two-way slabs BBS
 - [ ] Concrete and excavation quantities (earthwork, lean, RCC)

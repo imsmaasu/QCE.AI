@@ -418,7 +418,7 @@ export function buildFootingScene(
   leaders.push({
     id: 'lead-main',
     rowId: 'R1',
-    target: [L_in * 0.25, mainBottomY, 0],
+    target: [L_in * 0.3, mainBottomY + 2, 0],
     text: fmtCalloutWithSpacing(mainBarNo, mainSpacingIn),
     preferredSide: 'right',
   });
@@ -426,7 +426,7 @@ export function buildFootingScene(
   leaders.push({
     id: 'lead-dist',
     rowId: 'R2',
-    target: [-L_in * 0.25, distBottomY, 0],
+    target: [-L_in * 0.2, distBottomY, 0],
     text: fmtCalloutWithSpacing(distBarNo, distSpacingIn),
     preferredSide: 'left',
   });

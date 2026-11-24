@@ -213,7 +213,8 @@ export function projectScene(
 
       // Main bars (R1): horizontal lines along x at each z
       const r1Bars = scene.bars.filter((b) => b.rowId === 'R1');
-      const r1ToDraw = drawingStyle === 'textbook' ? (r1Bars.length > 0 ? [r1Bars[0]] : []) : r1Bars;
+      const midMainIdx = Math.floor(r1Bars.length / 2);
+      const r1ToDraw = drawingStyle === 'textbook' ? (r1Bars.length > 0 ? [r1Bars[midMainIdx]] : []) : r1Bars;
       for (const b of r1ToDraw) {
         const z = b.points[0][2];
         const minX = b.points[1][0];
@@ -233,7 +234,8 @@ export function projectScene(
 
       // Dist bars (R2): vertical lines along z at each x
       const r2Bars = scene.bars.filter((b) => b.rowId === 'R2');
-      const r2ToDraw = drawingStyle === 'textbook' ? (r2Bars.length > 0 ? [r2Bars[0]] : []) : r2Bars;
+      const midDistIdx = Math.floor(r2Bars.length / 2);
+      const r2ToDraw = drawingStyle === 'textbook' ? (r2Bars.length > 0 ? [r2Bars[midDistIdx]] : []) : r2Bars;
       for (const b of r2ToDraw) {
         const x = b.points[0][0];
         const minZ = b.points[1][2];
@@ -300,10 +302,11 @@ export function projectScene(
       // Leaders for Main and Dist
       const leadMain = scene.leaders.find((l) => l.rowId === 'R1');
       if (leadMain) {
+        const zMid = r1Bars[midMainIdx]?.points[0][2] ?? 0;
         leaders.push({
           id: 'plan-lead-main',
           rowId: 'R1',
-          target: [0, 8],
+          target: [0, zMid],
           text: leadMain.text,
           direction: 'right',
         });
@@ -311,10 +314,11 @@ export function projectScene(
 
       const leadDist = scene.leaders.find((l) => l.rowId === 'R2');
       if (leadDist) {
+        const xMid = r2Bars[midDistIdx]?.points[0][0] ?? 0;
         leaders.push({
           id: 'plan-lead-dist',
           rowId: 'R2',
-          target: [8, 0],
+          target: [xMid, 0],
           text: leadDist.text,
           direction: 'top',
         });
@@ -461,13 +465,17 @@ export function projectScene(
         });
       }
 
-      // Ties below plinth (R4): horizontal lines
+      // Ties below plinth (R4): closed rectangular loops
       const r4Bars = scene.bars.filter((b) => b.rowId === 'R4');
       const r4ToDraw = drawingStyle === 'textbook' ? (r4Bars.length > 0 ? [r4Bars[0]] : []) : r4Bars;
       for (const b of r4ToDraw) {
         const minX = Math.min(...b.points.map((p) => p[0]));
         const maxX = Math.max(...b.points.map((p) => p[0]));
         const y = b.points[0][1];
+        const inward = 0.25;
+        const leftX = minX + inward;
+        const rightX = maxX - inward;
+        const tieH = Math.max(b.diaIn, 1.0);
         lines.push({
           id: `elev-${b.markId}`,
           rowId: 'R4',
@@ -475,19 +483,26 @@ export function projectScene(
           diaIn: b.diaIn,
           kind: 'tie',
           points: [
-            [minX, y],
-            [maxX, y],
+            [leftX, y - tieH / 2],
+            [rightX, y - tieH / 2],
+            [rightX, y + tieH / 2],
+            [leftX, y + tieH / 2],
+            [leftX, y - tieH / 2],
           ],
         });
       }
 
-      // Ties above plinth (R6): horizontal lines
+      // Ties above plinth (R6): closed rectangular loops
       const r6Bars = scene.bars.filter((b) => b.rowId === 'R6');
       const r6ToDraw = drawingStyle === 'textbook' ? (r6Bars.length > 0 ? [r6Bars[0]] : []) : r6Bars;
       for (const b of r6ToDraw) {
         const minX = Math.min(...b.points.map((p) => p[0]));
         const maxX = Math.max(...b.points.map((p) => p[0]));
         const y = b.points[0][1];
+        const inward = 0.25;
+        const leftX = minX + inward;
+        const rightX = maxX - inward;
+        const tieH = Math.max(b.diaIn, 1.0);
         lines.push({
           id: `elev-${b.markId}`,
           rowId: 'R6',
@@ -495,8 +510,11 @@ export function projectScene(
           diaIn: b.diaIn,
           kind: 'tie',
           points: [
-            [minX, y],
-            [maxX, y],
+            [leftX, y - tieH / 2],
+            [rightX, y - tieH / 2],
+            [rightX, y + tieH / 2],
+            [leftX, y + tieH / 2],
+            [leftX, y - tieH / 2],
           ],
         });
       }
@@ -987,7 +1005,7 @@ export function projectScene(
   const ZONE_MARGIN_LEFT = Math.max(6, Math.max(widthSpan * 0.08, 6 * H_est));
   const ZONE_MARGIN_RIGHT = Math.max(8, Math.max(widthSpan * 0.10, 8 * H_est));
   const ZONE_MARGIN_TOP = Math.max(4, Math.max(heightSpan * 0.06, 4 * H_est));
-  const ZONE_MARGIN_BOTTOM = Math.max(8, Math.max(heightSpan * 0.12, 7.5 * H_est));
+  const ZONE_MARGIN_BOTTOM = Math.max(10, Math.max(heightSpan * 0.16, 9 * H_est));
 
   minU -= ZONE_MARGIN_LEFT;
   maxU += ZONE_MARGIN_RIGHT;

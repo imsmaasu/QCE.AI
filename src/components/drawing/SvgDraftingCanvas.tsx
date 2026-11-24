@@ -82,7 +82,7 @@ export function SvgDraftingCanvas({
 
   const getBarStrokeWidth = (kind: string, isHighlighted: boolean) => {
     let baseW = wMainBar;
-    if (kind === 'dist' || kind === 'tie') baseW = wSecondaryBar;
+    if (kind === 'dist' || kind === 'tie' || kind === 'dowel') baseW = wSecondaryBar;
     if (kind === 'stirrup') baseW = wStirrup;
     return isHighlighted ? baseW * 1.5 : baseW;
   };
@@ -206,14 +206,15 @@ export function SvgDraftingCanvas({
     let stagger = false;
 
     return sorted.map((lm) => {
-      if (Math.abs(lm.y - lastY) < 2.0 * H) {
+      if (Math.abs(lm.y - lastY) < 3.0 * H) {
         stagger = !stagger;
       } else {
         stagger = false;
       }
       lastY = lm.y;
-      const xShift = stagger ? -4.0 * H : 0;
-      return { ...lm, xShift };
+      // Stagger horizontal text positions: first mark at -2H, second mark at -6H from column face
+      const textOffsetH = stagger ? -6.0 : -2.0;
+      return { ...lm, textOffsetH };
     });
   }, [view.levelMarks, H]);
 
@@ -384,6 +385,7 @@ export function SvgDraftingCanvas({
                 fill="none"
                 stroke={color}
                 strokeWidth={strokeWidth}
+                strokeDasharray={line.kind === 'tie' && isElevation ? '4,3' : undefined}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -442,7 +444,17 @@ export function SvgDraftingCanvas({
             const p2x = dim.p2[0];
             const p2y = toY(dim.p2[1]);
 
-            const offsetDist = dim.offset;
+            let offsetDist = dim.offset;
+            // Clamp horizontal dimension if downward offset approaches reserved title zone
+            if (isHoriz && offsetDist < 0) {
+              const candidateY = p1y - offsetDist;
+              // Title zone reserved height is 5.0 * H at bottom (maxV), plus 1.5H clearance
+              const maxAllowedY = maxV - 6.5 * H;
+              if (candidateY > maxAllowedY) {
+                offsetDist = p1y - maxAllowedY;
+              }
+            }
+
             const offX = isHoriz ? 0 : offsetDist;
             const offY = isHoriz ? -offsetDist : 0;
 
@@ -556,14 +568,18 @@ export function SvgDraftingCanvas({
         {/* 5. Level Marks (EL. PLINTH, GL) */}
         {laidOutLevelMarks.map((lm) => {
           const sy = toY(lm.y);
-          const sx = lm.x + (lm.xShift || 0);
-          const datumLen = 8 * H;
+          const sx = lm.x;
+          const datumLen = 14 * H;
           const triH = 1.0 * H;
           const triW = 0.8 * H;
+          const textOffsetH = lm.textOffsetH ?? -2.0;
+          // Grouped text: elevation text at textOffsetH from column face, label text 1.5H above it
+          const textRightX = sx + textOffsetH * H;
+          const textLeftX = textRightX - 6.5 * H;
 
           return (
             <g key={lm.id} className="drafting-level-mark">
-              {/* Horizontal level datum line */}
+              {/* Horizontal level datum line extending to the left */}
               <line
                 x1={sx - datumLen}
                 y1={sy}
@@ -572,6 +588,7 @@ export function SvgDraftingCanvas({
                 stroke={textColor}
                 strokeWidth={wDimLine}
               />
+              {/* Triangle marker directly on the column face */}
               <polygon
                 points={`${sx - triW / 2},${sy - triH} ${sx},${sy - triH} ${sx},${sy}`}
                 fill={textColor}
@@ -603,20 +620,22 @@ export function SvgDraftingCanvas({
               {/* Level label text: rendered only when showLabels and not compact */}
               {showLabels && !isCompact && (
                 <>
+                  {/* Elevation text: 2H (or 6H if staggered) to the left of the triangle */}
                   <text
-                    x={sx - 1.2 * H}
-                    y={sy - 1.4 * H}
-                    textAnchor="end"
+                    x={textLeftX}
+                    y={sy - 0.4 * H}
+                    textAnchor="start"
                     fontSize={fontSizeAnnotation}
                     fontWeight="normal"
                     fill={textColor}
                   >
                     {lm.text}
                   </text>
+                  {/* Label text: 1.5H above elevation text, left-aligned with it */}
                   <text
-                    x={sx - 1.2 * H}
-                    y={sy - 0.3 * H}
-                    textAnchor="end"
+                    x={textLeftX}
+                    y={sy - 1.9 * H}
+                    textAnchor="start"
                     fontSize={fontSizeSubtitle}
                     fontWeight="normal"
                     fill={isMonochrome ? '#404040' : 'var(--text-muted, #76767E)'}

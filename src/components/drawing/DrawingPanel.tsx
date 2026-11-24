@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, lazy, Suspense } from 'react';
+import jsPDF from 'jspdf';
 import { useProjectStore } from '../../store/projectStore';
-import { generateView2D, ViewType } from '../../geometry';
+import { generateView2D, buildComponentScene, ViewType } from '../../geometry';
 import { SvgDraftingCanvas } from './SvgDraftingCanvas';
 import { DrawingDialog } from './DrawingDialog';
 import { BbsRow } from '../../engine/types';
+
+const ThreeDViewer = lazy(() => import('./ThreeDViewer'));
 
 export function DrawingPanel() {
   const components = useProjectStore((s) => s.components);
@@ -19,6 +22,151 @@ export function DrawingPanel() {
   const bbsResult = useProjectStore((s) => s.bbsResult);
 
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [is3DMode, setIs3DMode] = useState<boolean>(false);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  const getSvgBlobUrl = (): { blobUrl: string; width: number; height: number } | null => {
+    if (!canvasContainerRef.current) return null;
+    const svgEl = canvasContainerRef.current.querySelector('svg');
+    if (!svgEl) return null;
+
+    const clonedSvg = svgEl.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    // Use viewBox or bounding client rect
+    const viewBox = svgEl.viewBox?.baseVal;
+    const width = viewBox && viewBox.width > 0 ? viewBox.width : svgEl.clientWidth || 800;
+    const height = viewBox && viewBox.height > 0 ? viewBox.height : svgEl.clientHeight || 600;
+
+    clonedSvg.setAttribute('width', String(width));
+    clonedSvg.setAttribute('height', String(height));
+
+    // Ensure opaque white background behind geometry
+    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bgRect.setAttribute('width', '100%');
+    bgRect.setAttribute('height', '100%');
+    bgRect.setAttribute('fill', '#FFFFFF');
+    clonedSvg.insertBefore(bgRect, clonedSvg.firstChild);
+
+    const svgString = new XMLSerializer().serializeToString(clonedSvg);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    return {
+      blobUrl: URL.createObjectURL(svgBlob),
+      width,
+      height,
+    };
+  };
+
+  const handleSavePng = () => {
+    const data = getSvgBlobUrl();
+    if (!data || !activeComponent) return;
+
+    const { blobUrl, width, height } = data;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      const scale = 2; // 2x device pixel ratio for crisp rendering
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `QCE_${activeComponent.name}_${currentTab}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      }
+      URL.revokeObjectURL(blobUrl);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+    };
+
+    img.src = blobUrl;
+  };
+
+  const handleExportPdf = () => {
+    const data = getSvgBlobUrl();
+    if (!data || !activeComponent) return;
+
+    const { blobUrl, width, height } = data;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const imgData = canvas.toDataURL('image/png');
+
+        // Landscape A3: 420 x 297 mm
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a3',
+        });
+
+        const pageWidth = 420;
+        const pageHeight = 297;
+        const margin = 15;
+        const availWidth = pageWidth - 2 * margin;
+        const availHeight = pageHeight - 2 * margin - 15;
+
+        // Title and meta
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.text(`QCE — ${activeComponent.name} (${currentTab.toUpperCase()})`, margin, margin + 4);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        const dateStr = new Date().toISOString().slice(0, 10);
+        pdf.text(`Style: ${drawingStyle.toUpperCase()} | Generated: ${dateStr}`, margin, margin + 10);
+
+        // Aspect fit image
+        const aspect = width / height;
+        let targetW = availWidth;
+        let targetH = availWidth / aspect;
+        if (targetH > availHeight) {
+          targetH = availHeight;
+          targetW = availHeight * aspect;
+        }
+        const xPos = margin + (availWidth - targetW) / 2;
+        const yPos = margin + 14 + (availHeight - targetH) / 2;
+
+        pdf.addImage(imgData, 'PNG', xPos, yPos, targetW, targetH);
+        pdf.save(`QCE_${activeComponent.name}_${currentTab}_${dateStr}.pdf`);
+      }
+      URL.revokeObjectURL(blobUrl);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+    };
+
+    img.src = blobUrl;
+  };
 
   // Pick active component or fall back to first non-rates component if available
   const activeComponent = useMemo(() => {
@@ -68,6 +216,7 @@ export function DrawingPanel() {
   }, [activeComponent, drawingPanelTabMemory, tabs]);
 
   const handleSelectTab = (tabId: string) => {
+    setIs3DMode(false);
     if (activeComponent) {
       setDrawingPanelTab(activeComponent.id, tabId);
     }
@@ -78,6 +227,12 @@ export function DrawingPanel() {
     if (!activeComponent) return [];
     return bbsResult.rows.filter((r) => r.componentId === activeComponent.id);
   }, [bbsResult.rows, activeComponent]);
+
+  // 3D Scene
+  const scene3D = useMemo(() => {
+    if (!activeComponent) return null;
+    return buildComponentScene(activeComponent, computedRows, components);
+  }, [activeComponent, computedRows, components]);
 
   // 2D View
   const view2D = useMemo(() => {
@@ -296,6 +451,99 @@ export function DrawingPanel() {
             {showLabels ? 'Labels ✓' : 'Labels —'}
           </button>
 
+          {/* Imagine 3D Button (Visible only for structural members, not rates) */}
+          {activeComponent && activeComponent.type !== 'rates' && (
+            <button
+              type="button"
+              onClick={() => setIs3DMode((prev) => !prev)}
+              title={is3DMode ? 'Return to 2D view' : 'Imagine 3D Rebar Cage'}
+              aria-label="Toggle 3D View"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: is3DMode ? '1px solid var(--accent, #2563EB)' : '1px solid var(--hairline, #E9E9ED)',
+                backgroundColor: is3DMode ? 'var(--accent, #2563EB)' : 'var(--bg-field, #F3F3F6)',
+                color: is3DMode ? '#FFFFFF' : 'var(--text-primary, #17171A)',
+                cursor: 'pointer',
+                boxShadow: is3DMode ? '0 1px 3px rgba(37,99,235,0.25)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+              {is3DMode ? '2D View' : 'Imagine 3D'}
+            </button>
+          )}
+
+          {/* Save PNG Button */}
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={handleSavePng}
+            title="Save PNG (2x resolution)"
+            aria-label="Save drawing as PNG"
+            style={{ width: '28px', height: '28px' }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </button>
+
+          {/* Export PDF Button */}
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={handleExportPdf}
+            title="Export drawing as A3 Landscape PDF"
+            aria-label="Export drawing as PDF"
+            style={{ width: '28px', height: '28px' }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </button>
+
           <button
             type="button"
             className="btn-icon"
@@ -314,31 +562,53 @@ export function DrawingPanel() {
         </div>
       </div>
 
-      {/* Main Drawing Canvas Viewport */}
+      {/* Main Drawing Canvas / 3D Viewport */}
       <div
+        ref={canvasContainerRef}
         style={{
           flex: 1,
           position: 'relative',
-          padding: '12px',
+          padding: is3DMode ? 0 : '12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: drawingStyle === 'textbook' ? '#FFFFFF' : 'var(--bg-surface, #FFFFFF)',
+          backgroundColor: is3DMode ? 'var(--bg-surface, #FAFAFB)' : drawingStyle === 'textbook' ? '#FFFFFF' : 'var(--bg-surface, #FFFFFF)',
           overflow: 'hidden',
           minHeight: '260px',
         }}
       >
-        <SvgDraftingCanvas
-          view={view2D}
-          highlightedRowId={hoveredRowId}
-          onHighlightRow={setHoveredRowId}
-          drawingStyle={drawingStyle}
-          showLabels={showLabels}
-        />
+        {is3DMode && scene3D ? (
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'var(--text-muted, #76767E)',
+                  fontSize: '13px',
+                }}
+              >
+                Loading 3D model...
+              </div>
+            }
+          >
+            <ThreeDViewer scene={scene3D} />
+          </Suspense>
+        ) : (
+          <SvgDraftingCanvas
+            view={view2D}
+            highlightedRowId={hoveredRowId}
+            onHighlightRow={setHoveredRowId}
+            drawingStyle={drawingStyle}
+            showLabels={showLabels}
+          />
+        )}
       </div>
 
       {/* HTML Site View Footer: General Notes + Title Block */}
-      {view2D.siteView && (
+      {!is3DMode && view2D.siteView && (
         <div
           className="site-view-html-footer"
           style={{

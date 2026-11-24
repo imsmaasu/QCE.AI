@@ -357,7 +357,7 @@ function FootingParamsGrid({
           onChange={(L) => onUpdate({ L })}
         />
         {(() => {
-          const limits = getFieldLimits('footing', 'coverEachSideIn', params);
+          const limits = getFieldLimits('footing', 'coverEachSideIn', params as unknown as Record<string, unknown>);
           return (
             <NumberField
               label="Cover (each side)"
@@ -574,7 +574,7 @@ function ColumnParamsGrid({
         onChange={(lapFactor) => onUpdate({ lapFactor })}
       />
       {(() => {
-        const limits = getFieldLimits('column', 'coverEachSideIn', params);
+        const limits = getFieldLimits('column', 'coverEachSideIn', params as unknown as Record<string, unknown>);
         return (
           <NumberField
             label="Tie cover (each side)"
@@ -590,7 +590,7 @@ function ColumnParamsGrid({
         );
       })()}
       {(() => {
-        const limits = getFieldLimits('column', 'topCoverIn', params);
+        const limits = getFieldLimits('column', 'topCoverIn', params as unknown as Record<string, unknown>);
         return (
           <NumberField
             label="Top cover (above dowels)"
@@ -786,7 +786,7 @@ function BeamParamsGrid({
         onChange={(beamDepthIn) => onUpdate({ beamDepthIn })}
       />
       {(() => {
-        const limits = getFieldLimits('beam', 'coverEachSideIn', params);
+        const limits = getFieldLimits('beam', 'coverEachSideIn', params as unknown as Record<string, unknown>);
         return (
           <NumberField
             label="Stirrup cover (each side)"

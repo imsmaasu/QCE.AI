@@ -6,9 +6,10 @@ import { fmtNum } from '../utils/units';
 interface TopBarProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onOpenVersionHistory?: () => void;
 }
 
-export function TopBar({ sidebarOpen, onToggleSidebar }: TopBarProps) {
+export function TopBar({ sidebarOpen, onToggleSidebar, onOpenVersionHistory }: TopBarProps) {
   const name = useProjectStore((s) => s.name);
   const setName = useProjectStore((s) => s.setName);
   const theme = useProjectStore((s) => s.theme);
@@ -211,6 +212,18 @@ export function TopBar({ sidebarOpen, onToggleSidebar }: TopBarProps) {
             </div>
           )}
         </div>
+
+        {/* Version History / Changelog button */}
+        <button
+          type="button"
+          className="top-bar__version-btn"
+          onClick={onOpenVersionHistory}
+          title="View Changelog"
+          aria-label="View Changelog, version 0.4"
+        >
+          <span className="top-bar__version-dot" />
+          <span>v0.4</span>
+        </button>
 
         {/* Theme cycle button (System -> Light -> Dark -> System) */}
         <button

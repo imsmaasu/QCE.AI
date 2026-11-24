@@ -292,7 +292,7 @@ export function buildBeamScene(
     p1: [lOver4In, 0, 0],
     p2: [clearSpanIn - lOver4In, 0, 0],
     text: `${fmtBarDia(stirrupBarNo)}"Ø@${stirrupSpacingMidIn}"C/C`,
-    offsetIn: -10,
+    offsetIn: -16,
     axis: 'x',
   });
 
@@ -335,7 +335,7 @@ export function buildBeamScene(
     axis: 'y',
   });
 
-  // Stirrup zone leaders
+  // Stirrup zone leaders (Strictly 1 left, 1 mid, 1 right)
   leaders.push({
     id: 'lead-stirrup-left',
     rowId: 'R10',
@@ -347,7 +347,7 @@ export function buildBeamScene(
   leaders.push({
     id: 'lead-stirrup-mid',
     rowId: 'R11',
-    target: [clearSpanIn * 0.50, 6, 0],
+    target: [clearSpanIn * 0.50, 0, 0],
     text: fmtCalloutWithSpacing(stirrupBarNo, stirrupSpacingMidIn),
     preferredSide: 'bottom',
   });
@@ -364,7 +364,7 @@ export function buildBeamScene(
   leaders.push({
     id: 'lead-top-bars',
     rowId: 'R9',
-    target: [clearSpanIn * 0.70, topBarY, 0],
+    target: [clearSpanIn * 0.65, beamDepthIn, 0],
     text: fmtCalloutWithCount(topCount, topBarNo),
     preferredSide: 'top',
   });
@@ -372,7 +372,7 @@ export function buildBeamScene(
   leaders.push({
     id: 'lead-bot-bars',
     rowId: 'R7',
-    target: [clearSpanIn * 0.78, bottomBarY, 0],
+    target: [clearSpanIn * 0.75, 0, 0],
     text: fmtCalloutWithCount(bottomCount, bottomBarNo),
     preferredSide: 'bottom',
   });
@@ -380,7 +380,7 @@ export function buildBeamScene(
   leaders.push({
     id: 'lead-extra-bot',
     rowId: 'R8',
-    target: [clearSpanIn * 0.32, bottomBarY, 0],
+    target: [clearSpanIn * 0.35, 0, 0],
     text: fmtCalloutWithCount(extraBottomCount, extraBottomBarNo),
     preferredSide: 'bottom',
   });

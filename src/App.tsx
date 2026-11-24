@@ -7,6 +7,7 @@ import { ComponentCard } from './components/ComponentCard';
 import { SheetView } from './components/SheetView';
 import { UndoSnackbar } from './components/UndoSnackbar';
 import { DrawingPanel } from './components/drawing/DrawingPanel';
+import { VersionHistory } from './components/VersionHistory';
 import { ComponentType } from './engine/types';
 import './styles/main.css';
 
@@ -15,6 +16,8 @@ export default function App() {
   const currentView = useProjectStore((s) => s.currentView);
   const theme = useProjectStore((s) => s.theme);
   const addComponent = useProjectStore((s) => s.addComponent);
+
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
 
   // Sidebar is closed by default, state remembered in localStorage
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -80,6 +83,7 @@ export default function App() {
       <TopBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={toggleSidebar}
+        onOpenVersionHistory={() => setVersionHistoryOpen(true)}
       />
 
       <div className="workspace">
@@ -165,6 +169,10 @@ export default function App() {
       </div>
 
       <UndoSnackbar />
+      <VersionHistory
+        isOpen={versionHistoryOpen}
+        onClose={() => setVersionHistoryOpen(false)}
+      />
     </>
   );
 }
