@@ -14,10 +14,14 @@
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-condensed": "^5.3.0",
+    "@react-three/drei": "^9.105.0",
+    "@react-three/fiber": "^8.17.10",
+    "@types/three": "^0.160.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "three": "^0.160.0",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
